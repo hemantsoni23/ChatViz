@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Chat Plot</title>
+    <!-- Include Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <!-- Create a canvas element for the Chart.js plot -->
+    <canvas id="chatPlot" max width="400" max height="150"></canvas>
+
+    <script>
+        // Parse the chart data from Flask
+        var chartData = {{ chart_data|tojson|safe }};
+
+        // Extract labels (months) and unique author names
+        var labels = [...new Set(chartData.map(function(item) {
+            return item['Month_Year'];
+        }))];
+
+        var authorNames = [...new Set(chartData.map(function(item) {
+            return item['Author'];
+        }))];
+
+        // Create a dataset for each author
+        var datasets = authorNames.map(function(authorName) {
+            var data = labels.map(function(month) {
+                var entry = chartData.find(function(item) {
+                    return item['Month_Year'] === month && item['Author'] === authorName;
+                });
+                return entry ? entry['Count'] : 0;
+            });
+
+            return {
+                label: authorName,
+                data: data,
+                backgroundColor: randomColor(),  // You can use a function to generate random colors
+                borderColor: 'rgba(0, 0, 0, 0.2)',
+                borderWidth: 1
+            };
+        });
+
+        // Create a Chart.js chart using the parsed data
+        var ctx = document.getElementById('chatPlot').getContext('2d');
+        var myChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: datasets
+            },
+            options: {
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                      },
+                      y: {
+                        beginAtZero: true,
+                        stacked: 'auto',  
+                        barPercentage: 1, 
+                        categoryPercentage: 1
+                    }
+                },
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    }
+                },
+                responsive: true
+            }
+        });
+
+        // Function to generate random colors
+        function randomColor() {
+            var letters = '0123456789ABCDEF';
+            var color = '#';
+            for (var i = 0; i < 6; i++) {
+                color += letters[Math.floor(Math.random() * 16)];
+            }
+            return color;
+        }
+    </script>
+</body>
+</html>
