@@ -207,5 +207,5 @@ def perform_analysis(df):
     return chat_stats
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=False,host='0.0.0.0')
 
