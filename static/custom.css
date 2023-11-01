@@ -112,3 +112,8 @@
   transform: scale(1.05);
 }
 
+.author-statistics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(33%, 1fr)); /* Adjust column width as needed */
+  grid-gap: 20px; /* Adjust the gap between items */
+}

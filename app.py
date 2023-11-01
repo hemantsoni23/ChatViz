@@ -1,19 +1,14 @@
 import os
+import threading
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
 import regex
 import pandas as pd
 import numpy as np
 import emoji
-import plotly.express as px
-import plotly.io as pio
-from collections import Counter
-import matplotlib.pyplot as plt
-import seaborn as sns
-from datetime import datetime, timedelta
-import plotly.graph_objects as go
-from wordcloud import WordCloud, STOPWORDS, ImageColorGenerator
 import re
 import csv
+from flask_caching import Cache
+from datetime import datetime
 
 app = Flask(__name__)
 app.secret_key = 'hemant_soni'
@@ -21,9 +16,24 @@ app.static_folder = 'static'
 
 UPLOAD_FOLDER = 'uploads'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['CACHE_TYPE'] = 'simple'
+app.config['CACHE_DEFAULT_TIMEOUT'] = 300 
+
+# Initialize the cache
+cache = Cache(app)
+
+# cache.init_app(app)
+
+def compute_behaviours_background(df):
+    # data = perform_analysis(df)
+    data={}
+    data['Timestamp'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    # Cache the result
+    cache.set('behaviours_data', data, timeout=3600)
 
 @app.route('/')
 def home():
+    cache.clear()
     return render_template('index.html')
 
 @app.route('/upload', methods=['POST'])
@@ -38,6 +48,7 @@ def upload():
             file_path = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
             file.save(file_path)
 
+            # Convert the uploaded text file to CSV
             convert_txt_to_csv(file_path)
             csv_file_path = os.path.splitext(file_path)[0] + '.csv'
             session['csv_file_path'] = csv_file_path
@@ -46,7 +57,9 @@ def upload():
     return render_template('upload.html')
 
 @app.route('/analysis')
+@cache.cached(timeout=3600)
 def analysis():
+    print("----------------------------------------------------Analysis----------------------------------------------------------")
     csv_file_path = session.get('csv_file_path', None)
 
     if not csv_file_path:
@@ -72,8 +85,19 @@ def analysis():
     df['Date'] = pd.to_datetime(df['Date'], format='%Y-%m-%d')
     df['Weekday'] = df['Date'].dt.weekday
     chart_data_4 = df.groupby(['Weekday', 'Author'])['Message'].count().reset_index()
+    data['Timestamp'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-    return render_template('result.html', chart_data_1=chart_data_1.to_dict(orient='records'), chart_data_2=chart_data_2.to_dict(orient='records'),chart_data_3=chart_data_3.to_dict(orient='records'),chart_data_4=chart_data_4.to_dict(orient='records'),analysis_result = data)
+    if 'csv_file_path' in session:
+        csv_file_path = session['csv_file_path']
+        df = pd.read_csv(csv_file_path, encoding='utf-8')
+
+        # Create a thread to compute behaviours in the background
+        behaviours_thread = threading.Thread(target=compute_behaviours_background, args=(df,))
+        behaviours_thread.start()
+        os.remove(csv_file_path)
+
+    return render_template('result.html', chart_data_1=chart_data_1.to_dict(orient='records'), chart_data_2=chart_data_2.to_dict(orient='records'), chart_data_3=chart_data_3.to_dict(orient='records'), chart_data_4=chart_data_4.to_dict(orient='records'), analysis_result=data)
+
 
 def convert_txt_to_csv(txt_file_path):
     data = []
@@ -119,7 +143,6 @@ def perform_analysis(df):
     df.drop(df[df.Author == 'WhatsApp'].index , inplace=True)
     df = df[(df['Time'] != 'System') & (df['Date'].str.match(r'\d{2}/\d{2}/\d{2}'))]
 
-    message_from_whatsapp = df[df["Author"] == 'WhatsApp'].shape[0]
     total_message = df.shape[0]
     media_messages = df[df["Message"] == '<Media omitted>'].shape[0]
     media_messages_df = df[df['Message'] == '<Media omitted>']
@@ -172,33 +195,17 @@ def perform_analysis(df):
     df['Time'] = pd.to_datetime(df['Time'], format='%I:%M %p')
     # print('next',df)
 
-    longest_message_index = df['Message'].str.len().idxmax()
-    longest_message = df.loc[longest_message_index, 'Message']
-    author_of_longest_message = df.loc[longest_message_index, 'Author']
-    length_of_longest_message = len(longest_message)
-
     df['Date'] = pd.to_datetime(df['Date'], format='%Y-%m-%d')
     df = df.sort_values(by='Date')
 
     min_date = df['Date'].min()
     max_date = df['Date'].max()
-    date_diff = max_date - min_date
-    total_years = date_diff.days // 365
-    total_months = (date_diff.days % 365) // 30
-    total_days = date_diff.days % 30
-
 
     most_active_day = df.groupby(df['Date'].dt.date)['Author'].count().idxmax()
     most_active_month = df.groupby(df['Date'].dt.to_period('M'))['Author'].count().idxmax()
     most_active_year = df.groupby(df['Date'].dt.to_period('Y'))['Author'].count().idxmax()
 
     chat_stats.update({
-        'Author of the Longest Message': author_of_longest_message,
-        'Length of the Longest Message': length_of_longest_message,
-        'Longest Message': longest_message,
-        'Total Years': total_years,
-        'Total Months': total_months,
-        'Total Days': total_days,
         'Most Active Day': most_active_day,
         'Most Active Month': most_active_month,
         'Most Active Year': most_active_year
@@ -206,6 +213,17 @@ def perform_analysis(df):
 
     return chat_stats
 
-if __name__ == '__main__':
-    app.run(debug=False,host='0.0.0.0')
+@app.route('/behaviours')
+def behaviours():
+    behaviours_data = cache.get('behaviours_data')
+    if behaviours_data is None:
+        if 'csv_file_path' in session:
+            csv_file_path = session['csv_file_path']
+            df = pd.read_csv(csv_file_path, encoding='utf-8')
+            behaviours_data = perform_analysis(df)
+            cache.set('behaviours_data', behaviours_data, timeout=3600)
+    return render_template('behaviours.html', data=behaviours_data)
 
+if __name__ == '__main__':
+    app.run(debug=True)
+    # app.config['ENV'] = 'production'

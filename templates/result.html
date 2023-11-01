@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ChatViz</title>
+  <title>Analysis</title>
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" />
   <link rel="stylesheet" href="{{ url_for('static', filename='custom.css') }}" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -11,12 +11,15 @@
 
 <body>
   <div class="min-h-screen bg-gradient-to-r from-blue-500 to-purple-500 flex flex-col justify-center">
-    <header class="text-white py-4 items-center">
-      <h1 class="text-4xl justify-center">ChatViz</h1>
+    <header class="text-white py-4 flex items-center justify-between">
+      <!-- <h1 class="text-4xl font-bold text-center">ChatViz</h1> -->
+      <a class="text-4xl font-bold text-center" href="/">ChatViz</a>
+      {% include 'navbar.html' %}
     </header>
+    
 
     <div class="p-4">
-      <div class="bg-white p-4 rounded-lg shadow-md mt-4" class="chatPlotCanva">
+      <div id="stats" class="bg-white p-4 rounded-lg shadow-md mt-4" class="chatPlotCanva">
         <h2 class="text-2xl font-bold mb-4">Number of messages / months</h2>
         <canvas id="chatPlot1" max width="400" height="auto"></canvas>
       </div>
@@ -46,9 +49,9 @@
                 <li>Number of Links Shared: <span class="text-lg">{{ analysis_result['Number of Links Shared'] }}</span></li>
             </ul>
         </div>
-        <div class="flex flex-wrap">
+        <div class="author-statistics-grid">
           {% for author_stat in analysis_result['Author Stats'] %}
-          <div class="mb-6 bg-gray-200 p-4 rounded-lg" style="width: 33%;">
+          <div class="mb-6 bg-gray-200 p-4 rounded-lg" >
               <h3 class="text-xl font-bold">Author: {{ author_stat['Author'] }}</h3>
               <ul>
                   <li>Messages Sent: <span class="text-lg">{{ author_stat['Messages Sent'] }}</span></li>
@@ -66,31 +69,16 @@
           <h2 class="text-2xl font-bold mb-4">Additional Analysis Results</h2>
       
           <div class="mb-6">
-              <h3 class="text-xl font-bold">Longest Streaks</h3>
-              {% for streak in analysis_result['Longest Streaks'] %}
-              <p>{{ streak['Author'] }}: {{ streak['Streak'] }} days</p>
-              {% endfor %}
-          </div>
-      
-          <div class="mb-6">
               <h3 class="text-xl font-bold">Most Active Dates</h3>
               <p>Most Active Day: {{ analysis_result['Most Active Day'] }}</p>
               <p>Most Active Month: {{ analysis_result['Most Active Month'] }}</p>
               <p>Most Active Year: {{ analysis_result['Most Active Year'] }}</p>
-          </div>
-      
-          <div class="mb-6">
-              <h3 class="text-xl font-bold">Longest Messages from Authors</h3>
-              {% for message in analysis_result['Longest Messages'] %}
-              <h4 class="text-lg font-bold">Author: {{ message['Author'] }}</h4>
-              <p>Message: {{ message['Message'] }}</p>
-              <p>Message Length: {{ message['Length'] }} characters</p>
-              {% endfor %}
+              <p>Analysis Timestamp: {{ analysis_result['Timestamp'] }}</p>
           </div>
       
       </div>
     </div>
-    </div>
+  </div>
   </div>
   </div>
 
