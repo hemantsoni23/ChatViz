@@ -224,6 +224,6 @@ def behaviours():
             cache.set('behaviours_data', behaviours_data, timeout=3600)
     return render_template('behaviours.html', data=behaviours_data)
 
-if __name__ == '__main__':
-    app.run(debug=False,host='0.0.0.0')
-    # app.config['ENV'] = 'production'
+# if __name__ == '__main__':
+#     app.run(debug=False,host='0.0.0.0')
+#     # app.config['ENV'] = 'production'
