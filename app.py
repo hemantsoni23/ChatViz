@@ -1,229 +1,372 @@
-import os
-import threading
-from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
-import regex
+# Importing modules
+import nltk
+import streamlit as st
+import re
+import preprocessor,helper
 import pandas as pd
 import numpy as np
-import emoji
-import re
-import csv
-from flask_caching import Cache
-from datetime import datetime
+import seaborn as sns
+import matplotlib.pyplot as plt
 
-app = Flask(__name__)
-app.secret_key = 'hemant_soni'
-app.static_folder = 'static'
+# App title
+st.sidebar.title("Whatsapp Chat  Sentiment Analyzer")
 
-UPLOAD_FOLDER = 'uploads'
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-app.config['CACHE_TYPE'] = 'simple'
-app.config['CACHE_DEFAULT_TIMEOUT'] = 300 
+# VADER : is a lexicon and rule-based sentiment analysis tool that is specifically attuned to sentiments.
+nltk.download('vader_lexicon')
 
-# Initialize the cache
-cache = Cache(app)
+# File upload button
+uploaded_file = st.sidebar.file_uploader("Choose a file")
 
-# cache.init_app(app)
+# Main heading
+st. markdown("<h1 style='text-align: center; color: grey;'>Whatsapp Chat  Sentiment Analyzer</h1>", unsafe_allow_html=True)
 
-def compute_behaviours_background(df):
-    # data = perform_analysis(df)
-    data={}
-    data['Timestamp'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    # Cache the result
-    cache.set('behaviours_data', data, timeout=3600)
-
-@app.route('/')
-def home():
-    cache.clear()
-    return render_template('index.html')
-
-@app.route('/upload', methods=['POST'])
-def upload():
-    if request.method == 'POST':
-        file = request.files['file']
-        if file.filename == '':
-            flash('No selected file')
-            return redirect(request.url)
-
-        if file:
-            file_path = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
-            file.save(file_path)
-
-            # Convert the uploaded text file to CSV
-            convert_txt_to_csv(file_path)
-            csv_file_path = os.path.splitext(file_path)[0] + '.csv'
-            session['csv_file_path'] = csv_file_path
-            return redirect(url_for('analysis'))
-
-    return render_template('upload.html')
-
-@app.route('/analysis')
-@cache.cached(timeout=3600)
-def analysis():
-    print("----------------------------------------------------Analysis----------------------------------------------------------")
-    csv_file_path = session.get('csv_file_path', None)
-
-    if not csv_file_path:
-        flash('No chat file found. Please upload a file first.')
-        return redirect(url_for('upload'))
-    df = pd.read_csv(csv_file_path, encoding='utf-8')
-
-    data = perform_analysis(df)
-    df = df[(df['Time'] != 'System') & (df['Date'].str.match(r'\d{2}/\d{2}/\d{2}'))]
-    df.drop(df[df.Author == 'WhatsApp'].index , inplace=True)
-    df['Time'] = df['Time'].str.replace('\u202F', ' ')
-    df = df[df['Message'].apply(lambda x: isinstance(x, str))]
-    df['Date'] = pd.to_datetime(df['Date'], format='%d/%m/%y')
-    df['Month_Year'] = df['Date'].dt.strftime('%Y-%m')
-    df['Month'] = df['Date'].dt.strftime('%b')
-    df['Date'] = df['Date'].dt.date
-    chart_data_1 = df.groupby(['Month_Year', 'Author']).size().reset_index(name='Count')
-    df['Time'] = pd.to_datetime(df['Time'], format='%I:%M %p')
-    df['Hour'] = df['Time'].dt.hour
-    df['AMPM'] = df['Time'].dt.strftime('%p')
-    chart_data_2 = df.groupby(['Hour', 'AMPM', 'Author']).size().reset_index(name='Count')
-    chart_data_3 = df.groupby('Author')['Message'].count().reset_index(name='Count')
-    df['Date'] = pd.to_datetime(df['Date'], format='%Y-%m-%d')
-    df['Weekday'] = df['Date'].dt.weekday
-    chart_data_4 = df.groupby(['Weekday', 'Author'])['Message'].count().reset_index()
-    data['Timestamp'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-    if 'csv_file_path' in session:
-        csv_file_path = session['csv_file_path']
-        df = pd.read_csv(csv_file_path, encoding='utf-8')
-
-        # Create a thread to compute behaviours in the background
-        behaviours_thread = threading.Thread(target=compute_behaviours_background, args=(df,))
-        behaviours_thread.start()
-        os.remove(csv_file_path)
-
-    return render_template('result.html', chart_data_1=chart_data_1.to_dict(orient='records'), chart_data_2=chart_data_2.to_dict(orient='records'), chart_data_3=chart_data_3.to_dict(orient='records'), chart_data_4=chart_data_4.to_dict(orient='records'), analysis_result=data)
-
-
-def convert_txt_to_csv(txt_file_path):
-    data = []
-    with open(txt_file_path, 'r', encoding='utf-8') as file:
-        lines = file.readlines()
-
-    for line in lines:
-        parts = re.split(r', ', line.strip(), maxsplit=1)
-
-        if len(parts) > 1:
-            date = parts[0]
-            time_message = parts[1]
-
-            time_message_parts = time_message.split(' - ')
-            if len(time_message_parts) > 1:
-                time = time_message_parts[0]
-                message = time_message_parts[1]
-            else:
-                time = "System" 
-                message = time_message_parts[0]
-
-            if ':' in message:
-                author, message = message.split(':', 1)
-                author = author.strip()  
-                message = message.strip() 
-            else:
-                author = "WhatsApp"  
-                message = message.strip()  
-
-            data.append([date, time, author, message])
-
-    csv_file_path = os.path.splitext(txt_file_path)[0] + '.csv'
-
-    with open(csv_file_path, 'w', newline='', encoding='utf-8') as file:
-        writer = csv.writer(file)
-        writer.writerow(['Date', 'Time', 'Author', 'Message'])  # Write header
-        writer.writerows(data)
+if uploaded_file is not None:
     
-    os.remove(txt_file_path)
+    # Getting byte form & then decoding
+    bytes_data = uploaded_file.getvalue()
+    d = bytes_data.decode("utf-8")
+    
+    # Perform preprocessing
+    data = preprocessor.preprocess(d)
+    
+    # Importing SentimentIntensityAnalyzer class from "nltk.sentiment.vader"
+    from nltk.sentiment.vader import SentimentIntensityAnalyzer
+    
+    # Object
+    sentiments = SentimentIntensityAnalyzer()
+    
+    # Creating different columns for (Positive/Negative/Neutral)
+    data["po"] = [sentiments.polarity_scores(i)["pos"] for i in data["message"]] # Positive
+    data["ne"] = [sentiments.polarity_scores(i)["neg"] for i in data["message"]] # Negative
+    data["nu"] = [sentiments.polarity_scores(i)["neu"] for i in data["message"]] # Neutral
+    
+    # To indentify true sentiment per row in message column
+    def sentiment(d):
+        if d["po"] >= d["ne"] and d["po"] >= d["nu"]:
+            return 1
+        if d["ne"] >= d["po"] and d["ne"] >= d["nu"]:
+            return -1
+        if d["nu"] >= d["po"] and d["nu"] >= d["ne"]:
+            return 0
 
-def perform_analysis(df):
-    df = df[(df['Time'] != 'System') & (df['Date'].str.match(r'\d{2}/\d{2}/\d{2}'))]
-    df.drop(df[df.Author == 'WhatsApp'].index , inplace=True)
-    df = df[(df['Time'] != 'System') & (df['Date'].str.match(r'\d{2}/\d{2}/\d{2}'))]
+    # Creating new column & Applying function
+    data['value'] = data.apply(lambda row: sentiment(row), axis=1)
+    
+    # User names list
+    user_list = data['user'].unique().tolist()
+    
+    # Sorting
+    user_list.sort()
+    
+    # Insert "Overall" at index 0
+    user_list.insert(0, "Overall")
+    
+    # Selectbox
+    selected_user = st.sidebar.selectbox("Show analysis wrt", user_list)
+    
+    if st.sidebar.button("Show Analysis"):
+        # Monthly activity map
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.markdown("<h3 style='text-align: center; color: black;'>Monthly Activity map(Positive)</h3>",unsafe_allow_html=True)
+            
+            busy_month = helper.month_activity_map(selected_user, data,1)
+            
+            fig, ax = plt.subplots()
+            ax.bar(busy_month.index, busy_month.values, color='green')
+            plt.xticks(rotation='vertical')
+            st.pyplot(fig)
+        with col2:
+            st.markdown("<h3 style='text-align: center; color: black;'>Monthly Activity map(Neutral)</h3>",unsafe_allow_html=True)
+            
+            busy_month = helper.month_activity_map(selected_user, data, 0)
+            
+            fig, ax = plt.subplots()
+            ax.bar(busy_month.index, busy_month.values, color='grey')
+            plt.xticks(rotation='vertical')
+            st.pyplot(fig)
+        with col3:
+            st.markdown("<h3 style='text-align: center; color: black;'>Monthly Activity map(Negative)</h3>",unsafe_allow_html=True)
+            
+            busy_month = helper.month_activity_map(selected_user, data, -1)
+            
+            fig, ax = plt.subplots()
+            ax.bar(busy_month.index, busy_month.values, color='red')
+            plt.xticks(rotation='vertical')
+            st.pyplot(fig)
 
-    total_message = df.shape[0]
-    media_messages = df[df["Message"] == '<Media omitted>'].shape[0]
-    media_messages_df = df[df['Message'] == '<Media omitted>']
-    df['Time'] = df['Time'].str.replace('\u202F', ' ')
-    df = df[df['Message'].apply(lambda x: isinstance(x, str))]
+        # Daily activity map
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.markdown("<h3 style='text-align: center; color: black;'>Daily Activity map(Positive)</h3>",unsafe_allow_html=True)
+            
+            busy_day = helper.week_activity_map(selected_user, data,1)
+            
+            fig, ax = plt.subplots()
+            ax.bar(busy_day.index, busy_day.values, color='green')
+            plt.xticks(rotation='vertical')
+            st.pyplot(fig)
+        with col2:
+            st.markdown("<h3 style='text-align: center; color: black;'>Daily Activity map(Neutral)</h3>",unsafe_allow_html=True)
+            
+            busy_day = helper.week_activity_map(selected_user, data, 0)
+            
+            fig, ax = plt.subplots()
+            ax.bar(busy_day.index, busy_day.values, color='grey')
+            plt.xticks(rotation='vertical')
+            st.pyplot(fig)
+        with col3:
+            st.markdown("<h3 style='text-align: center; color: black;'>Daily Activity map(Negative)</h3>",unsafe_allow_html=True)
+            
+            busy_day = helper.week_activity_map(selected_user, data, -1)
+            
+            fig, ax = plt.subplots()
+            ax.bar(busy_day.index, busy_day.values, color='red')
+            plt.xticks(rotation='vertical')
+            st.pyplot(fig)
 
-    def split_count(text):
-        emoji_list = []
-        data = regex.findall(r'\X', text)
-        for word in data:
-            if any(char in emoji.EMOJI_DATA for char in word):
-                emoji_list.append(word)
-        return emoji_list
+        # Weekly activity map
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            try:
+                st.markdown("<h3 style='text-align: center; color: black;'>Weekly Activity Map(Positive)</h3>",unsafe_allow_html=True)
+                
+                user_heatmap = helper.activity_heatmap(selected_user, data, 1)
+                
+                fig, ax = plt.subplots()
+                ax = sns.heatmap(user_heatmap)
+                st.pyplot(fig)
+            except:
+                st.image('error.webp')
+        with col2:
+            try:
+                st.markdown("<h3 style='text-align: center; color: black;'>Weekly Activity Map(Neutral)</h3>",unsafe_allow_html=True)
+                
+                user_heatmap = helper.activity_heatmap(selected_user, data, 0)
+                
+                fig, ax = plt.subplots()
+                ax = sns.heatmap(user_heatmap)
+                st.pyplot(fig)
+            except:
+                st.image('error.webp')
+        with col3:
+            try:
+                st.markdown("<h3 style='text-align: center; color: black;'>Weekly Activity Map(Negative)</h3>",unsafe_allow_html=True)
+                
+                user_heatmap = helper.activity_heatmap(selected_user, data, -1)
+                
+                fig, ax = plt.subplots()
+                ax = sns.heatmap(user_heatmap)
+                st.pyplot(fig)
+            except:
+                st.image('error.webp')
 
-    df['emoji'] = df["Message"].apply(split_count)
+        # Daily timeline
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.markdown("<h3 style='text-align: center; color: black;'>Daily Timeline(Positive)</h3>",unsafe_allow_html=True)
+            
+            daily_timeline = helper.daily_timeline(selected_user, data, 1)
+            
+            fig, ax = plt.subplots()
+            ax.plot(daily_timeline['only_date'], daily_timeline['message'], color='green')
+            plt.xticks(rotation='vertical')
+            st.pyplot(fig)
+        with col2:
+            st.markdown("<h3 style='text-align: center; color: black;'>Daily Timeline(Neutral)</h3>",unsafe_allow_html=True)
+            
+            daily_timeline = helper.daily_timeline(selected_user, data, 0)
+            
+            fig, ax = plt.subplots()
+            ax.plot(daily_timeline['only_date'], daily_timeline['message'], color='grey')
+            plt.xticks(rotation='vertical')
+            st.pyplot(fig)
+        with col3:
+            st.markdown("<h3 style='text-align: center; color: black;'>Daily Timeline(Negative)</h3>",unsafe_allow_html=True)
+            
+            daily_timeline = helper.daily_timeline(selected_user, data, -1)
+            
+            fig, ax = plt.subplots()
+            ax.plot(daily_timeline['only_date'], daily_timeline['message'], color='red')
+            plt.xticks(rotation='vertical')
+            st.pyplot(fig)
 
-    emojis = sum(df['emoji'].str.len())
-    URL_PATTERN = r'(https?://\S+)'
+        # Monthly timeline
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.markdown("<h3 style='text-align: center; color: black;'>Monthly Timeline(Positive)</h3>",unsafe_allow_html=True)
+            
+            timeline = helper.monthly_timeline(selected_user, data,1)
+            
+            fig, ax = plt.subplots()
+            ax.plot(timeline['time'], timeline['message'], color='green')
+            plt.xticks(rotation='vertical')
+            st.pyplot(fig)
+        with col2:
+            st.markdown("<h3 style='text-align: center; color: black;'>Monthly Timeline(Neutral)</h3>",unsafe_allow_html=True)
+            
+            timeline = helper.monthly_timeline(selected_user, data,0)
+            
+            fig, ax = plt.subplots()
+            ax.plot(timeline['time'], timeline['message'], color='grey')
+            plt.xticks(rotation='vertical')
+            st.pyplot(fig)
+        with col3:
+            st.markdown("<h3 style='text-align: center; color: black;'>Monthly Timeline(Negative)</h3>",unsafe_allow_html=True)
+            
+            timeline = helper.monthly_timeline(selected_user, data,-1)
+            
+            fig, ax = plt.subplots()
+            ax.plot(timeline['time'], timeline['message'], color='red')
+            plt.xticks(rotation='vertical')
+            st.pyplot(fig)
 
-    df['urlcount'] = df.Message.apply(lambda x: len(re.findall(URL_PATTERN, x)))
+        # Percentage contributed
+        if selected_user == 'Overall':
+            col1,col2,col3 = st.columns(3)
+            with col1:
+                st.markdown("<h3 style='text-align: center; color: black;'>Most Positive Contribution</h3>",unsafe_allow_html=True)
+                x = helper.percentage(data, 1)
+                
+                # Displaying
+                st.dataframe(x)
+            with col2:
+                st.markdown("<h3 style='text-align: center; color: black;'>Most Neutral Contribution</h3>",unsafe_allow_html=True)
+                y = helper.percentage(data, 0)
+                
+                # Displaying
+                st.dataframe(y)
+            with col3:
+                st.markdown("<h3 style='text-align: center; color: black;'>Most Negative Contribution</h3>",unsafe_allow_html=True)
+                z = helper.percentage(data, -1)
+                
+                # Displaying
+                st.dataframe(z)
 
-    links = np.sum(df.urlcount)
 
-    authors = list(df.Author.unique())
-    author_stats = []
-    for author in authors:
-        if author != 'WhatsApp':
-            req_df = df[df["Author"] == author]
-            req_df['Word_Count'] = req_df['Message'].apply(lambda s: len(s.split(' ')))
-            author_stat = {
-                'Author': author,
-                'Messages Sent': req_df.shape[0],
-                'Average Words per Message': np.mean(req_df['Word_Count']), 
-                'Media Messages Sent': media_messages_df[media_messages_df['Author'] == author].shape[0],
-                'Emojis Sent': sum(req_df['emoji'].str.len()),
-                'Links Sent': sum(req_df["urlcount"])
-            }
-            author_stats.append(author_stat)
-    chat_stats = {
-        'Total Messages': total_message,
-        'Number of Media Shared': media_messages,
-        'Number of Emojis Shared': emojis,
-        'Number of Links Shared': links,
-        'Author Stats': author_stats
-    }
-    df['Date'] = pd.to_datetime(df['Date'], format='%d/%m/%y')
-    df['Month_Year'] = df['Date'].dt.strftime('%Y-%m')
-    df['Month'] = df['Date'].dt.strftime('%b')
-    df['Date'] = df['Date'].dt.date
-    df['Time'] = pd.to_datetime(df['Time'], format='%I:%M %p')
-    # print('next',df)
+        # Most Positive,Negative,Neutral User...
+        if selected_user == 'Overall':
+            
+            # Getting names per sentiment
+            x = data['user'][data['value'] == 1].value_counts().head(10)
+            y = data['user'][data['value'] == -1].value_counts().head(10)
+            z = data['user'][data['value'] == 0].value_counts().head(10)
 
-    df['Date'] = pd.to_datetime(df['Date'], format='%Y-%m-%d')
-    df = df.sort_values(by='Date')
+            col1,col2,col3 = st.columns(3)
+            with col1:
+                # heading
+                st.markdown("<h3 style='text-align: center; color: black;'>Most Positive Users</h3>",unsafe_allow_html=True)
+                
+                # Displaying
+                fig, ax = plt.subplots()
+                ax.bar(x.index, x.values, color='green')
+                plt.xticks(rotation='vertical')
+                st.pyplot(fig)
+            with col2:
+                # heading
+                st.markdown("<h3 style='text-align: center; color: black;'>Most Neutral Users</h3>",unsafe_allow_html=True)
+                
+                # Displaying
+                fig, ax = plt.subplots()
+                ax.bar(z.index, z.values, color='grey')
+                plt.xticks(rotation='vertical')
+                st.pyplot(fig)
+            with col3:
+                # heading
+                st.markdown("<h3 style='text-align: center; color: black;'>Most Negative Users</h3>",unsafe_allow_html=True)
+                
+                # Displaying
+                fig, ax = plt.subplots()
+                ax.bar(y.index, y.values, color='red')
+                plt.xticks(rotation='vertical')
+                st.pyplot(fig)
 
-    min_date = df['Date'].min()
-    max_date = df['Date'].max()
+        # WORDCLOUD......
+        col1,col2,col3 = st.columns(3)
+        with col1:
+            try:
+                # heading
+                st.markdown("<h3 style='text-align: center; color: black;'>Positive WordCloud</h3>",unsafe_allow_html=True)
+                
+                # Creating wordcloud of positive words
+                df_wc = helper.create_wordcloud(selected_user, data,1)
+                fig, ax = plt.subplots()
+                ax.imshow(df_wc)
+                st.pyplot(fig)
+            except:
+                # Display error message
+                st.image('error.webp')
+        with col2:
+            try:
+                # heading
+                st.markdown("<h3 style='text-align: center; color: black;'>Neutral WordCloud</h3>",unsafe_allow_html=True)
+                
+                # Creating wordcloud of neutral words
+                df_wc = helper.create_wordcloud(selected_user, data,0)
+                fig, ax = plt.subplots()
+                ax.imshow(df_wc)
+                st.pyplot(fig)
+            except:
+                # Display error message
+                st.image('error.webp')
+        with col3:
+            try:
+                # heading
+                st.markdown("<h3 style='text-align: center; color: black;'>Negative WordCloud</h3>",unsafe_allow_html=True)
+                
+                # Creating wordcloud of negative words
+                df_wc = helper.create_wordcloud(selected_user, data,-1)
+                fig, ax = plt.subplots()
+                ax.imshow(df_wc)
+                st.pyplot(fig)
+            except:
+                # Display error message
+                st.image('error.webp')
 
-    most_active_day = df.groupby(df['Date'].dt.date)['Author'].count().idxmax()
-    most_active_month = df.groupby(df['Date'].dt.to_period('M'))['Author'].count().idxmax()
-    most_active_year = df.groupby(df['Date'].dt.to_period('Y'))['Author'].count().idxmax()
+        # Most common positive words
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            try:
+                # Data frame of most common positive words.
+                most_common_df = helper.most_common_words(selected_user, data,1)
+                
+                # heading
+                st.markdown("<h3 style='text-align: center; color: black;'>Positive Words</h3>",unsafe_allow_html=True)
+                fig, ax = plt.subplots()
+                ax.barh(most_common_df[0], most_common_df[1],color='green')
+                plt.xticks(rotation='vertical')
+                st.pyplot(fig)
+            except:
+                # Disply error image
+                st.image('error.webp')
+        with col2:
+            try:
+                # Data frame of most common neutral words.
+                most_common_df = helper.most_common_words(selected_user, data,0)
+                
+                # heading
+                st.markdown("<h3 style='text-align: center; color: black;'>Neutral Words</h3>",unsafe_allow_html=True)
+                fig, ax = plt.subplots()
+                ax.barh(most_common_df[0], most_common_df[1],color='grey')
+                plt.xticks(rotation='vertical')
+                st.pyplot(fig)
+            except:
+                # Disply error image
+                st.image('error.webp')
+        with col3:
+            try:
+                # Data frame of most common negative words.
+                most_common_df = helper.most_common_words(selected_user, data,-1)
+                
+                # heading
+                st.markdown("<h3 style='text-align: center; color: black;'>Negative Words</h3>",unsafe_allow_html=True)
+                fig, ax = plt.subplots()
+                ax.barh(most_common_df[0], most_common_df[1], color='red')
+                plt.xticks(rotation='vertical')
+                st.pyplot(fig)
+            except:
+                # Disply error image
+                st.image('error.webp')
 
-    chat_stats.update({
-        'Most Active Day': most_active_day,
-        'Most Active Month': most_active_month,
-        'Most Active Year': most_active_year
-    })
 
-    return chat_stats
 
-@app.route('/behaviours')
-def behaviours():
-    behaviours_data = cache.get('behaviours_data')
-    if behaviours_data is None:
-        if 'csv_file_path' in session:
-            csv_file_path = session['csv_file_path']
-            df = pd.read_csv(csv_file_path, encoding='utf-8')
-            behaviours_data = perform_analysis(df)
-            cache.set('behaviours_data', behaviours_data, timeout=3600)
-    return render_template('behaviours.html', data=behaviours_data)
-
-# if __name__ == '__main__':
-#     app.run(debug=False,host='0.0.0.0')
-#     # app.config['ENV'] = 'production'
