@@ -4,6 +4,9 @@ from urlextract import URLExtract
 from wordcloud import WordCloud
 import pandas as pd
 from collections import Counter
+# import matplotlib.pyplot as plt
+# import seaborn as sns
+import plotly.express as px
 
 # Object
 extract = URLExtract()
@@ -112,3 +115,30 @@ def most_common_words(selected_user,df,k):
     # Creating data frame of most common 20 entries
     most_common_df = pd.DataFrame(Counter(words).most_common(20))
     return most_common_df
+
+# Function to show basic analysis plots
+def show_basic_analysis(data):
+    # Line plot based on the number of messages each month-year
+    st.subheader("Line plot based on the number of messages each month-year")
+    monthly_counts = data.groupby(['year', 'month_num']).size().reset_index(name='count')
+    fig = px.line(monthly_counts, x='month_num', y='count', color='year', markers=True, title='Number of Messages Each Month-Year')
+    fig.update_layout(xaxis_title='Month-Year', yaxis_title='Number of Messages')
+    st.plotly_chart(fig)
+
+    # Plot for the number of total messages on specific weekdays
+    st.subheader("Plot for the number of total messages on specific weekdays")
+    weekday_counts = data.groupby('day_name').size().reset_index(name='count')
+    fig = px.bar(weekday_counts, x='day_name', y='count', title='Number of Messages on Specific Weekdays', labels={'day_name': 'Weekday', 'count': 'Number of Messages'})
+    st.plotly_chart(fig)
+
+    # Plot for the number of total messages on specific hours (in 12-hour format)
+    st.subheader("Plot for the number of total messages on specific hours (in 12-hour format)")
+    hourly_counts = data.groupby('hour').size().reset_index(name='count')
+    fig = px.bar(hourly_counts, x='hour', y='count', title='Number of Messages on Specific Hours (12-hour format)', labels={'hour': 'Hour (12-hour format)', 'count': 'Number of Messages'})
+    st.plotly_chart(fig)
+
+    # Plot for the number of total messages on specific days of all the months
+    st.subheader("Plot for the number of total messages on specific days of all the months")
+    daily_counts = data.groupby('day').size().reset_index(name='count')
+    fig = px.bar(daily_counts, x='day', y='count', title='Number of Messages on Specific Days of the Month', labels={'day': 'Day of the Month', 'count': 'Number of Messages'})
+    st.plotly_chart(fig)

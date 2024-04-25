@@ -6,7 +6,7 @@ import pandas as pd
 def preprocess(data):
     
     # Regular expression
-    pattern = '\d{1,2}/\d{1,2}/\d{2,4},\s\d{1,2}:\d{2}\s-\s'
+    pattern = '\d{1,2}/\d{1,2}/\d{2,4},\s\d{1,2}:\d{2}\s[ap]m\s-\s'
     
     # Split text file into messages & dates based on pattern
     messages = re.split(pattern, data)[1:]
@@ -17,9 +17,9 @@ def preprocess(data):
     
     # convert dates type
     try:
-        df['message_date'] = pd.to_datetime(df['message_date'], format='%d/%m/%y, %H:%M - ')
+        df['message_date'] = pd.to_datetime(df['message_date'], format='%d/%m/%y, %I:%M %p - ')
     except:
-        df['message_date'] = pd.to_datetime(df['message_date'], format='%m/%d/%y, %H:%M - ')
+        df['message_date'] = pd.to_datetime(df['message_date'], format='%m/%d/%y, %I:%M %p - ')
     df.rename(columns={'message_date': 'date'}, inplace=True)
 
     users = []
@@ -73,6 +73,8 @@ def preprocess(data):
 
     # Remove entries having user as group_notification
     df = df[df['user'] != 'group_notification']
+
+    print(df)
     
     # Returning preprocessed data frame
     return df

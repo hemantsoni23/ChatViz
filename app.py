@@ -8,6 +8,17 @@ import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 
+# Function to determine text color based on background color
+def get_text_color(bg_color):
+    # Convert background color to grayscale luminance
+    luminance = 0.2126 * bg_color[0] + 0.7152 * bg_color[1] + 0.0722 * bg_color[2]
+    
+    # Determine text color based on luminance
+    if luminance > 0.5:
+        return 'black'  # Light background, use black text
+    else:
+        return 'white'  # Dark background, use white text
+
 # App title
 st.sidebar.title("Whatsapp Chat  Sentiment Analyzer")
 
@@ -25,7 +36,7 @@ if uploaded_file is not None:
     # Getting byte form & then decoding
     bytes_data = uploaded_file.getvalue()
     d = bytes_data.decode("utf-8")
-    
+
     # Perform preprocessing
     data = preprocessor.preprocess(d)
     
@@ -60,9 +71,17 @@ if uploaded_file is not None:
     
     # Insert "Overall" at index 0
     user_list.insert(0, "Overall")
+
+    # TODO: Not working this below
+    # # Get the current Streamlit theme's background color 
+    # bg_color = st.get_option('theme.backgroundColor')
+    # print(bg_color)
+
+    # Determine text color based on background color
+    # text_color = get_text_color(bg_color)
     
     # Selectbox
-    selected_user = st.sidebar.selectbox("Show analysis wrt", user_list)
+    selected_user = st.sidebar.selectbox("Show analysis with respect to - ", user_list)
     
     if st.sidebar.button("Show Analysis"):
         # Monthly activity map
@@ -367,6 +386,7 @@ if uploaded_file is not None:
             except:
                 # Disply error image
                 st.image('error.webp')
-
-
+    
+    if st.sidebar.button("Show basic Analysis"):
+        helper.show_basic_analysis(data)
 
