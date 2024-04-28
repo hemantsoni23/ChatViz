@@ -116,29 +116,42 @@ def most_common_words(selected_user,df,k):
     most_common_df = pd.DataFrame(Counter(words).most_common(20))
     return most_common_df
 
+# Function to filter data based on user
+def filter_data_by_user(data, user):
+    if user == 'Overall':
+        return data
+    else:
+        return data[data['user'] == user]
+
 # Function to show basic analysis plots
-def show_basic_analysis(data):
+def show_basic_analysis(data, user):
+    filtered_data = filter_data_by_user(data, user)
+    
     # Line plot based on the number of messages each month-year
     st.subheader("Line plot based on the number of messages each month-year")
-    monthly_counts = data.groupby(['year', 'month_num']).size().reset_index(name='count')
-    fig = px.line(monthly_counts, x='month_num', y='count', color='year', markers=True, title='Number of Messages Each Month-Year')
+    monthly_counts = filtered_data.groupby(['year', 'month_num', 'user']).size().reset_index(name='count')
+    fig = px.line(monthly_counts, x='month_num', y='count', color='user', markers=True, title='Number of Messages Each Month-Year')
     fig.update_layout(xaxis_title='Month-Year', yaxis_title='Number of Messages')
-    st.plotly_chart(fig)
+    st.plotly_chart(fig, config={'displaylogo': False})
 
     # Plot for the number of total messages on specific weekdays
     st.subheader("Plot for the number of total messages on specific weekdays")
-    weekday_counts = data.groupby('day_name').size().reset_index(name='count')
-    fig = px.bar(weekday_counts, x='day_name', y='count', title='Number of Messages on Specific Weekdays', labels={'day_name': 'Weekday', 'count': 'Number of Messages'})
-    st.plotly_chart(fig)
+    weekday_counts = filtered_data.groupby(['day_name', 'user']).size().reset_index(name='count')
+    fig = px.bar(weekday_counts, x='day_name', y='count', color='user', barmode='group', title='Number of Messages on Specific Weekdays', labels={'day_name': 'Weekday', 'count': 'Number of Messages'})
+    fig.update_layout(xaxis={'categoryorder':'array', 'categoryarray':['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']})
+    st.plotly_chart(fig, config={'displaylogo': False})
 
     # Plot for the number of total messages on specific hours (in 12-hour format)
     st.subheader("Plot for the number of total messages on specific hours (in 12-hour format)")
-    hourly_counts = data.groupby('hour').size().reset_index(name='count')
-    fig = px.bar(hourly_counts, x='hour', y='count', title='Number of Messages on Specific Hours (12-hour format)', labels={'hour': 'Hour (12-hour format)', 'count': 'Number of Messages'})
-    st.plotly_chart(fig)
+    hourly_counts = filtered_data.groupby(['hour', 'user']).size().reset_index(name='count')
+    fig = px.bar(hourly_counts, x='hour', y='count', color='user', barmode='group', title='Number of Messages on Specific Hours (12-hour format)', labels={'hour': 'Hour (12-hour format)', 'count': 'Number of Messages'})
+    # fig.update_layout(height=500, width=800)
+    st.plotly_chart(fig, config={'displaylogo': False})
 
     # Plot for the number of total messages on specific days of all the months
     st.subheader("Plot for the number of total messages on specific days of all the months")
-    daily_counts = data.groupby('day').size().reset_index(name='count')
-    fig = px.bar(daily_counts, x='day', y='count', title='Number of Messages on Specific Days of the Month', labels={'day': 'Day of the Month', 'count': 'Number of Messages'})
-    st.plotly_chart(fig)
+    daily_counts = filtered_data.groupby(['day', 'user']).size().reset_index(name='count')
+    fig = px.bar(daily_counts, x='day', y='count', color='user', barmode='group', title='Number of Messages on Specific Days of the Month', labels={'day': 'Day of the Month', 'count': 'Number of Messages'})
+    # fig.update_layout(xaxis={'categoryorder':'array', 'categoryarray':[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31]})
+    # fig.update_layout(height=600, width=1000)
+    st.plotly_chart(fig, config={'displaylogo': False}, use_container_width=True, theme='streamlit')
