@@ -15,9 +15,20 @@ extract = URLExtract()
 # 0 => Neutral
 # 1 => Positive
 
+# Function to filter data based on user
+def filter_data_by_user(data, user):
+    if isinstance(user, list):  
+        return data[data['user'].isin(user)]
+    elif user == 'Overall':
+        return data
+    else:
+        return data[data['user'] == user]
+
 # Will return count of messages of selected user per day having k(0/1/-1) sentiment
 def week_activity_map(selected_user,df,k):
-    if selected_user != 'Overall':
+    if isinstance(selected_user,list):
+        df = df[df['user'].isin(selected_user)]
+    elif selected_user != 'Overall':
         df = df[df['user'] == selected_user]
     df = df[df['value'] == k]
     return df['day_name'].value_counts()
@@ -25,14 +36,18 @@ def week_activity_map(selected_user,df,k):
 
 # Will return count of messages of selected user per month having k(0/1/-1) sentiment
 def month_activity_map(selected_user,df,k):
-    if selected_user != 'Overall':
+    if isinstance(selected_user,list):
+        df = df[df['user'].isin(selected_user)]
+    elif selected_user != 'Overall':
         df = df[df['user'] == selected_user]
     df = df[df['value'] == k]
     return df['month'].value_counts()
 
 # Will return hear map containing count of messages having k(0/1/-1) sentiment
 def activity_heatmap(selected_user,df,k):
-    if selected_user != 'Overall':
+    if isinstance(selected_user,list):
+        df = df[df['user'].isin(selected_user)]
+    elif selected_user != 'Overall':
         df = df[df['user'] == selected_user]
     df = df[df['value'] == k]
     
@@ -43,7 +58,9 @@ def activity_heatmap(selected_user,df,k):
 
 # Will return count of messages of selected user per date having k(0/1/-1) sentiment
 def daily_timeline(selected_user,df,k):
-    if selected_user != 'Overall':
+    if isinstance(selected_user,list):
+        df = df[df['user'].isin(selected_user)]
+    elif selected_user != 'Overall':
         df = df[df['user'] == selected_user]
     df = df[df['value']==k]
     # count of message on a specific date
@@ -53,7 +70,9 @@ def daily_timeline(selected_user,df,k):
 
 # Will return count of messages of selected user per {year + month number + month} having k(0/1/-1) sentiment
 def monthly_timeline(selected_user,df,k):
-    if selected_user != 'Overall':
+    if isinstance(selected_user,list):
+        df = df[df['user'].isin(selected_user)]
+    elif selected_user != 'Overall':
         df = df[df['user'] == selected_user]
     df = df[df['value']==-k]
     timeline = df.groupby(['year', 'month_num', 'month']).count()['message'].reset_index()
@@ -64,7 +83,9 @@ def monthly_timeline(selected_user,df,k):
     return timeline
 
 # Will return percentage of message contributed having k(0/1/-1) sentiment
-def percentage(df,k):
+def percentage(df, users, k):
+    if isinstance(users,list):
+        df = df[df['user'].isin(users)]
     df = round((df['user'][df['value']==k].value_counts() / df[df['value']==k].shape[0]) * 100, 2).reset_index().rename(
         columns={'index': 'name', 'user': 'percent'})
     return df
@@ -73,7 +94,9 @@ def percentage(df,k):
 def create_wordcloud(selected_user,df,k):
     f = open('stop_hinglish.txt', 'r')
     stop_words = f.read()
-    if selected_user != 'Overall':
+    if isinstance(selected_user,list):
+        df = df[df['user'].isin(selected_user)]
+    elif selected_user != 'Overall':
         df = df[df['user'] == selected_user]
     
     # Remove entries of no significance
@@ -102,7 +125,9 @@ def create_wordcloud(selected_user,df,k):
 def most_common_words(selected_user,df,k):
     f = open('stop_hinglish.txt','r')
     stop_words = f.read()
-    if selected_user != 'Overall':
+    if isinstance(selected_user,list):
+        df = df[df['user'].isin(selected_user)]
+    elif selected_user != 'Overall':
         df = df[df['user'] == selected_user]
     temp = df[df['user'] != 'group_notification']
     temp = temp[temp['message'] != '<Media omitted>\n']
@@ -116,48 +141,41 @@ def most_common_words(selected_user,df,k):
     most_common_df = pd.DataFrame(Counter(words).most_common(20))
     return most_common_df
 
-# Function to filter data based on user
-def filter_data_by_user(data, user):
-    if user == 'Overall':
-        return data
-    else:
-        return data[data['user'] == user]
 
-# Function to show basic analysis plots
-# def show_basic_analysis(data, user):
-#     filtered_data = filter_data_by_user(data, user)
-    
-#     # Line plot based on the number of messages each month-year
-#     st.subheader("Line plot based on the number of messages each month-year")
-#     monthly_counts = filtered_data.groupby([ 'month_num', 'user']).size().reset_index(name='count')
-#     fig = px.line(monthly_counts, x='month_num', y='count', color='user', markers=True, title='Number of Messages Each Month-Year')
-#     fig.update_layout(xaxis_title='Month-Year', yaxis_title='Number of Messages')
-#     st.plotly_chart(fig, config={'displaylogo': False})
+# # Function to display basic stats of each user in columns
+# def displayBasicStats(data, users):
+#     # Calculate basic stats for each user
+#     basic_stats = {}
+#     for user in users:
+#         user_data = data[data['user'] == user]
+#         total_messages = len(user_data)
+#         # total_urls = user_data['urls'].sum()  # Assuming you have a column named 'urls' for counting URLs
+#         # total_emojis = user_data['emojis'].sum()  # Assuming you have a column named 'emojis' for counting emojis
+        
+#         basic_stats[user] = {
+#             'Total Messages': total_messages,
+#             # 'Total URLs Sent': total_urls,
+#             # 'Total Emojis Sent': total_emojis
+#         }
 
-#     # Plot for the number of total messages on specific weekdays
-#     st.subheader("Plot for the number of total messages on specific weekdays")
-#     weekday_counts = filtered_data.groupby(['day_name', 'user']).size().reset_index(name='count')
-#     fig = px.bar(weekday_counts, x='day_name', y='count', color='user', barmode='group', title='Number of Messages on Specific Weekdays', labels={'day_name': 'Weekday', 'count': 'Number of Messages'})
-#     fig.update_layout(xaxis={'categoryorder':'array', 'categoryarray':['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']})
-#     st.plotly_chart(fig, config={'displaylogo': False})
+#     # Display basic stats in columns
+#     num_users = len(users)
+#     cols_per_row = min(3, num_users)  # Maximum number of columns per row
+#     num_rows = (num_users + cols_per_row - 1) // cols_per_row  # Calculate the number of rows needed
 
-#     # Plot for the number of total messages on specific hours (in 12-hour format)
-#     st.subheader("Plot for the number of total messages on specific hours (in 12-hour format)")
-#     hourly_counts = filtered_data.groupby(['hour', 'user']).size().reset_index(name='count')
-#     fig = px.bar(hourly_counts, x='hour', y='count', color='user', barmode='group', title='Number of Messages on Specific Hours (12-hour format)', labels={'hour': 'Hour (12-hour format)', 'count': 'Number of Messages'})
-#     # fig.update_layout(height=500, width=800)
-#     st.plotly_chart(fig, config={'displaylogo': False})
+#     for i in range(num_rows):
+#         # Create a column for each user in the current row
+#         with st.columns(cols_per_row):
+#             for j in range(i * cols_per_row, min((i + 1) * cols_per_row, num_users)):
+#                 user = users[j]
+#                 st.subheader(f"Stats for {user}")
+#                 st.write(basic_stats[user])
 
-#     # Plot for the number of total messages on specific days of all the months
-#     st.subheader("Plot for the number of total messages on specific days of all the months")
-#     daily_counts = filtered_data.groupby(['day', 'user']).size().reset_index(name='count')
-#     fig = px.bar(daily_counts, x='day', y='count', color='user', barmode='group', title='Number of Messages on Specific Days of the Month', labels={'day': 'Day of the Month', 'count': 'Number of Messages'})
-#     # fig.update_layout(xaxis={'categoryorder':'array', 'categoryarray':[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31]})
-#     # fig.update_layout(height=600, width=1000)
-#     st.plotly_chart(fig, config={'displaylogo': False}, use_container_width=True, theme='streamlit')
-
+# Function to show basic analysis plots   
 def show_basic_analysis(data, user):
     filtered_data = filter_data_by_user(data, user)
+    # Display basic stats
+    # displayBasicStats(filtered_data, user)
 
     # Line plot based on the number of messages each month-year
     st.subheader("Timeline of Messages")
@@ -191,3 +209,36 @@ def show_basic_analysis(data, user):
     fig = px.bar(daily_counts, x='day', y='count', color='user', barmode='group', title='Number of Messages on Specific Days of the Month', labels={'day': 'Day of the Month', 'count': 'Number of Messages'})
     fig.update_layout(xaxis=dict(fixedrange=True), yaxis=dict(fixedrange=True))
     st.plotly_chart(fig, use_container_width=True, config={'displaylogo': False, 'static_plot': True}, theme='streamlit')
+
+
+# def show_basic_analysis(data, user):
+#     filtered_data = filter_data_by_user(data, user)
+    
+#     # Line plot based on the number of messages each month-year
+#     st.subheader("Line plot based on the number of messages each month-year")
+#     monthly_counts = filtered_data.groupby([ 'month_num', 'user']).size().reset_index(name='count')
+#     fig = px.line(monthly_counts, x='month_num', y='count', color='user', markers=True, title='Number of Messages Each Month-Year')
+#     fig.update_layout(xaxis_title='Month-Year', yaxis_title='Number of Messages')
+#     st.plotly_chart(fig, config={'displaylogo': False})
+
+#     # Plot for the number of total messages on specific weekdays
+#     st.subheader("Plot for the number of total messages on specific weekdays")
+#     weekday_counts = filtered_data.groupby(['day_name', 'user']).size().reset_index(name='count')
+#     fig = px.bar(weekday_counts, x='day_name', y='count', color='user', barmode='group', title='Number of Messages on Specific Weekdays', labels={'day_name': 'Weekday', 'count': 'Number of Messages'})
+#     fig.update_layout(xaxis={'categoryorder':'array', 'categoryarray':['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']})
+#     st.plotly_chart(fig, config={'displaylogo': False})
+
+#     # Plot for the number of total messages on specific hours (in 12-hour format)
+#     st.subheader("Plot for the number of total messages on specific hours (in 12-hour format)")
+#     hourly_counts = filtered_data.groupby(['hour', 'user']).size().reset_index(name='count')
+#     fig = px.bar(hourly_counts, x='hour', y='count', color='user', barmode='group', title='Number of Messages on Specific Hours (12-hour format)', labels={'hour': 'Hour (12-hour format)', 'count': 'Number of Messages'})
+#     # fig.update_layout(height=500, width=800)
+#     st.plotly_chart(fig, config={'displaylogo': False})
+
+#     # Plot for the number of total messages on specific days of all the months
+#     st.subheader("Plot for the number of total messages on specific days of all the months")
+#     daily_counts = filtered_data.groupby(['day', 'user']).size().reset_index(name='count')
+#     fig = px.bar(daily_counts, x='day', y='count', color='user', barmode='group', title='Number of Messages on Specific Days of the Month', labels={'day': 'Day of the Month', 'count': 'Number of Messages'})
+#     # fig.update_layout(xaxis={'categoryorder':'array', 'categoryarray':[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31]})
+#     # fig.update_layout(height=600, width=1000)
+#     st.plotly_chart(fig, config={'displaylogo': False}, use_container_width=True, theme='streamlit')
