@@ -124,34 +124,70 @@ def filter_data_by_user(data, user):
         return data[data['user'] == user]
 
 # Function to show basic analysis plots
+# def show_basic_analysis(data, user):
+#     filtered_data = filter_data_by_user(data, user)
+    
+#     # Line plot based on the number of messages each month-year
+#     st.subheader("Line plot based on the number of messages each month-year")
+#     monthly_counts = filtered_data.groupby([ 'month_num', 'user']).size().reset_index(name='count')
+#     fig = px.line(monthly_counts, x='month_num', y='count', color='user', markers=True, title='Number of Messages Each Month-Year')
+#     fig.update_layout(xaxis_title='Month-Year', yaxis_title='Number of Messages')
+#     st.plotly_chart(fig, config={'displaylogo': False})
+
+#     # Plot for the number of total messages on specific weekdays
+#     st.subheader("Plot for the number of total messages on specific weekdays")
+#     weekday_counts = filtered_data.groupby(['day_name', 'user']).size().reset_index(name='count')
+#     fig = px.bar(weekday_counts, x='day_name', y='count', color='user', barmode='group', title='Number of Messages on Specific Weekdays', labels={'day_name': 'Weekday', 'count': 'Number of Messages'})
+#     fig.update_layout(xaxis={'categoryorder':'array', 'categoryarray':['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']})
+#     st.plotly_chart(fig, config={'displaylogo': False})
+
+#     # Plot for the number of total messages on specific hours (in 12-hour format)
+#     st.subheader("Plot for the number of total messages on specific hours (in 12-hour format)")
+#     hourly_counts = filtered_data.groupby(['hour', 'user']).size().reset_index(name='count')
+#     fig = px.bar(hourly_counts, x='hour', y='count', color='user', barmode='group', title='Number of Messages on Specific Hours (12-hour format)', labels={'hour': 'Hour (12-hour format)', 'count': 'Number of Messages'})
+#     # fig.update_layout(height=500, width=800)
+#     st.plotly_chart(fig, config={'displaylogo': False})
+
+#     # Plot for the number of total messages on specific days of all the months
+#     st.subheader("Plot for the number of total messages on specific days of all the months")
+#     daily_counts = filtered_data.groupby(['day', 'user']).size().reset_index(name='count')
+#     fig = px.bar(daily_counts, x='day', y='count', color='user', barmode='group', title='Number of Messages on Specific Days of the Month', labels={'day': 'Day of the Month', 'count': 'Number of Messages'})
+#     # fig.update_layout(xaxis={'categoryorder':'array', 'categoryarray':[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31]})
+#     # fig.update_layout(height=600, width=1000)
+#     st.plotly_chart(fig, config={'displaylogo': False}, use_container_width=True, theme='streamlit')
+
 def show_basic_analysis(data, user):
     filtered_data = filter_data_by_user(data, user)
-    
+
     # Line plot based on the number of messages each month-year
-    st.subheader("Line plot based on the number of messages each month-year")
-    monthly_counts = filtered_data.groupby(['year', 'month_num', 'user']).size().reset_index(name='count')
-    fig = px.line(monthly_counts, x='month_num', y='count', color='user', markers=True, title='Number of Messages Each Month-Year')
-    fig.update_layout(xaxis_title='Month-Year', yaxis_title='Number of Messages')
-    st.plotly_chart(fig, config={'displaylogo': False})
+    st.subheader("Timeline of Messages")
+    fig = px.scatter(filtered_data, x='date', title='Timeline of Messages')
+    fig.update_layout(xaxis_title='Timeline', yaxis_title='Number of Messages')
+    fig.update_layout(xaxis=dict(fixedrange=True), yaxis=dict(fixedrange=True))
+    st.plotly_chart(fig, config={'displaylogo': False}, use_container_width=True)
 
     # Plot for the number of total messages on specific weekdays
     st.subheader("Plot for the number of total messages on specific weekdays")
     weekday_counts = filtered_data.groupby(['day_name', 'user']).size().reset_index(name='count')
     fig = px.bar(weekday_counts, x='day_name', y='count', color='user', barmode='group', title='Number of Messages on Specific Weekdays', labels={'day_name': 'Weekday', 'count': 'Number of Messages'})
-    fig.update_layout(xaxis={'categoryorder':'array', 'categoryarray':['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']})
-    st.plotly_chart(fig, config={'displaylogo': False})
+    fig.update_layout(xaxis={'categoryorder': 'array', 'categoryarray': ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']})
+    fig.update_layout(xaxis=dict(fixedrange=True), yaxis=dict(fixedrange=True))
+    st.plotly_chart(fig, use_container_width=True, config={'displaylogo': False, 'static_plot': True})
 
     # Plot for the number of total messages on specific hours (in 12-hour format)
     st.subheader("Plot for the number of total messages on specific hours (in 12-hour format)")
     hourly_counts = filtered_data.groupby(['hour', 'user']).size().reset_index(name='count')
-    fig = px.bar(hourly_counts, x='hour', y='count', color='user', barmode='group', title='Number of Messages on Specific Hours (12-hour format)', labels={'hour': 'Hour (12-hour format)', 'count': 'Number of Messages'})
-    # fig.update_layout(height=500, width=800)
-    st.plotly_chart(fig, config={'displaylogo': False})
+    # Format 'hour' column for display in 12-hour format with AM/PM
+    hourly_counts['hour_12h'] = [f"{h % 12 or 12}{'AM' if h < 12 else 'PM'}" for h in hourly_counts['hour']]
+    fig = px.bar(hourly_counts, x='hour_12h', y='count', color='user', barmode='group', title='Number of Messages on Specific Hours (12-hour format)', labels={'count': 'Number of Messages'})
+    fig.update_xaxes(title='Hour (12-hour format)')  # Update x-axis title
+    fig.update_layout(xaxis={'tickmode': 'linear', 'tick0': 0, 'dtick': 1, 'tickvals': list(range(24))})
+    fig.update_layout(xaxis=dict(fixedrange=True), yaxis=dict(fixedrange=True))
+    st.plotly_chart(fig, use_container_width=True, config={'displaylogo': False, 'static_plot': True})
 
     # Plot for the number of total messages on specific days of all the months
     st.subheader("Plot for the number of total messages on specific days of all the months")
     daily_counts = filtered_data.groupby(['day', 'user']).size().reset_index(name='count')
     fig = px.bar(daily_counts, x='day', y='count', color='user', barmode='group', title='Number of Messages on Specific Days of the Month', labels={'day': 'Day of the Month', 'count': 'Number of Messages'})
-    # fig.update_layout(xaxis={'categoryorder':'array', 'categoryarray':[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31]})
-    # fig.update_layout(height=600, width=1000)
-    st.plotly_chart(fig, config={'displaylogo': False}, use_container_width=True, theme='streamlit')
+    fig.update_layout(xaxis=dict(fixedrange=True), yaxis=dict(fixedrange=True))
+    st.plotly_chart(fig, use_container_width=True, config={'displaylogo': False, 'static_plot': True}, theme='streamlit')

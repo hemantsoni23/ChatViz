@@ -74,7 +74,7 @@ def preprocess(data):
     # Remove entries having user as group_notification
     df = df[df['user'] != 'group_notification']
 
-    print(df)
+    # print(df)
     
     # Returning preprocessed data frame
     return df
