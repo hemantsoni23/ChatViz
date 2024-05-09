@@ -332,7 +332,8 @@ st.set_page_config(layout="wide")
 
 # Main heading
 st.markdown("<h1 style='text-align: center; color: grey;'>ChatViz</h1>", unsafe_allow_html=True)
-
+# VADER : is a lexicon and rule-based sentiment analysis tool that is specifically attuned to sentiments.
+nltk.download('vader_lexicon')
 # File upload button
 uploaded_file = st.file_uploader("Choose a file")
 
