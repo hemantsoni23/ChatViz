@@ -4,8 +4,6 @@ import streamlit as st
 import plotly.graph_objects as go
 import plotly.express as px
 import preprocessor, helper
-# Importing SentimentIntensityAnalyzer class from "nltk.sentiment.vader"
-from nltk.sentiment.vader import SentimentIntensityAnalyzer
 
 # Function to display behaviours analysis with caching
 @st.cache_data
@@ -346,7 +344,9 @@ if uploaded_file is not None:
 
     # Perform preprocessing
     data = preprocessor.preprocess(d)
-    
+    # Importing SentimentIntensityAnalyzer class from "nltk.sentiment.vader"
+    from nltk.sentiment.vader import SentimentIntensityAnalyzer
+
     # Object
     sentiments = SentimentIntensityAnalyzer()
     
