@@ -193,6 +193,7 @@ def show_basic_analysis(data, user):
     fig = px.bar(weekday_counts, x='day_name', y='count', color='user', barmode='group', title='Number of Messages on Specific Weekdays', labels={'day_name': 'Weekday', 'count': 'Number of Messages'})
     fig.update_layout(xaxis={'categoryorder': 'array', 'categoryarray': ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']})
     fig.update_layout(xaxis=dict(fixedrange=True), yaxis=dict(fixedrange=True))
+    fig.update_layout(legend=dict(orientation="h", yanchor="top", y=1.1, xanchor="right", x=1))
     st.plotly_chart(fig, use_container_width=True, config={'displaylogo': False, 'static_plot': True})
 
     # Plot for the number of total messages on specific hours (in 12-hour format)
@@ -204,6 +205,7 @@ def show_basic_analysis(data, user):
     fig.update_xaxes(title='Hour (12-hour format)')  # Update x-axis title
     fig.update_layout(xaxis={'tickmode': 'linear', 'tick0': 0, 'dtick': 1, 'tickvals': list(range(24))})
     fig.update_layout(xaxis=dict(fixedrange=True), yaxis=dict(fixedrange=True))
+    fig.update_layout(legend=dict(orientation="h", yanchor="top", y=1.1, xanchor="right", x=1))
     st.plotly_chart(fig, use_container_width=True, config={'displaylogo': False, 'static_plot': True})
 
     # Plot for the number of total messages on specific days of all the months
@@ -211,6 +213,7 @@ def show_basic_analysis(data, user):
     daily_counts = filtered_data.groupby(['day', 'user']).size().reset_index(name='count')
     fig = px.bar(daily_counts, x='day', y='count', color='user', barmode='group', title='Number of Messages on Specific Days of the Month', labels={'day': 'Day of the Month', 'count': 'Number of Messages'})
     fig.update_layout(xaxis=dict(fixedrange=True), yaxis=dict(fixedrange=True))
+    fig.update_layout(legend=dict(orientation="h", yanchor="top", y=1.1, xanchor="right", x=1))
     st.plotly_chart(fig, use_container_width=True, config={'displaylogo': False, 'static_plot': True}, theme='streamlit')
 
 

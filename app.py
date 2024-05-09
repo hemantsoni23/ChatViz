@@ -4,6 +4,7 @@ import streamlit as st
 import plotly.graph_objects as go
 import plotly.express as px
 import preprocessor, helper
+import pandas as pd
 
 # Function to display behaviours analysis with caching
 @st.cache_data
@@ -52,132 +53,127 @@ def display_behaviours_analysis(data, selected_users):
 
 
     # Daily activity map
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        st.subheader('Daily Activity map(Positive)')
-        
-        busy_day = helper.week_activity_map(selected_users, data,1)
-        
-        fig = go.Figure(go.Bar(x=busy_day.index, y=busy_day.values, marker_color='green'))
-        # fig.update_layout(xaxis=dict(tickangle=-45), height=400, width=600)
-        fig.update_layout(xaxis=dict(fixedrange=True), yaxis=dict(fixedrange=True))
-        fig.update_layout(xaxis=dict(fixedrange=True), yaxis=dict(fixedrange=True))
-        st.plotly_chart(fig, config={'displaylogo': False})
-    with col2:
-        st.subheader('Daily Activity map(Neutral)')
-        
-        busy_day = helper.week_activity_map(selected_users, data, 0)
-        
-        fig = go.Figure(go.Bar(x=busy_day.index, y=busy_day.values, marker_color='grey'))
-        # fig.update_layout(xaxis=dict(tickangle=-45), height=400, width=600)
-        fig.update_layout(xaxis=dict(fixedrange=True), yaxis=dict(fixedrange=True))
-        fig.update_layout(xaxis=dict(fixedrange=True), yaxis=dict(fixedrange=True))
-        st.plotly_chart(fig, config={'displaylogo': False})
-    with col3:
-        st.subheader('Daily Activity map(Negative)')
-        
-        busy_day = helper.week_activity_map(selected_users, data, -1)
-        
-        fig = go.Figure(go.Bar(x=busy_day.index, y=busy_day.values, marker_color='red'))
-        # fig.update_layout(xaxis=dict(tickangle=-45), height=400, width=600)
-        fig.update_layout(xaxis=dict(fixedrange=True), yaxis=dict(fixedrange=True))
-        st.plotly_chart(fig, config={'displaylogo': False})
+    st.subheader('Daily Activity map')
+    busy_day_pos = helper.week_activity_map(selected_users, data, 1)
+    busy_day_neu = helper.week_activity_map(selected_users, data, 0)
+    busy_day_neg = helper.week_activity_map(selected_users, data, -1)
 
-    # Weekly activity map
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        try:
-            st.subheader('Weekly Activity Map(Positive)')
-            
-            user_heatmap = helper.activity_heatmap(selected_users, data, 1)
-            
-            fig = px.imshow(user_heatmap, color_continuous_scale='Greens')
-            fig.update_layout(height=400, width=600)
-            st.plotly_chart(fig, config={'displaylogo': False})
-        except:
-            st.image('error.webp')
-    with col2:
-        try:
-            st.subheader('Weekly Activity Map(Neutral)')
-            
-            user_heatmap = helper.activity_heatmap(selected_users, data, 0)
-            
-            fig = px.imshow(user_heatmap, color_continuous_scale='Greys')
-            fig.update_layout(height=400, width=600)
-            st.plotly_chart(fig, config={'displaylogo': False})
-        except:
-            st.image('error.webp')
-    with col3:
-        try:
-            st.subheader('Weekly Activity Map(Negative)')
-            
-            user_heatmap = helper.activity_heatmap(selected_users, data, -1)
-            
-            fig = px.imshow(user_heatmap, color_continuous_scale='Reds')
-            fig.update_layout(height=400, width=600)
-            st.plotly_chart(fig, config={'displaylogo': False})
-        except:
-            st.image('error.webp')
+    fig = go.Figure()
 
-    # Daily timeline
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        st.subheader('Daily Timeline(Positive)')
-        
-        daily_timeline = helper.daily_timeline(selected_users, data, 1)
-        
-        fig = go.Figure(go.Scatter(x=daily_timeline['only_date'], y=daily_timeline['message'], mode='lines', marker=dict(color='green')))
-        # fig.update_layout(xaxis=dict(tickangle=-45), height=400, width=600)
-        fig.update_layout(xaxis=dict(fixedrange=True), yaxis=dict(fixedrange=True))
-        st.plotly_chart(fig, config={'displaylogo': False})
-    with col2:
-        st.subheader('Daily Timeline(Neutral)')
-        
-        daily_timeline = helper.daily_timeline(selected_users, data, 0)
-        
-        fig = go.Figure(go.Scatter(x=daily_timeline['only_date'], y=daily_timeline['message'], mode='lines', marker=dict(color='grey')))
-        # fig.update_layout(xaxis=dict(tickangle=-45), height=400, width=600)
-        fig.update_layout(xaxis=dict(fixedrange=True), yaxis=dict(fixedrange=True))
-        st.plotly_chart(fig, config={'displaylogo': False})
-    with col3:
-        st.subheader('Daily Timeline(Negative)')
-        
-        daily_timeline = helper.daily_timeline(selected_users, data, -1)
-        
-        fig = go.Figure(go.Scatter(x=daily_timeline['only_date'], y=daily_timeline['message'], mode='lines', marker=dict(color='red')))
-        # fig.update_layout(xaxis=dict(tickangle=-45), height=400, width=600)
-        fig.update_layout(xaxis=dict(fixedrange=True), yaxis=dict(fixedrange=True))
-        st.plotly_chart(fig, config={'displaylogo': False})
+    # Add trace for Positive sentiment
+    fig.add_trace(go.Bar(
+        x=busy_day_pos.index,
+        y=busy_day_pos.values,
+        name='Positive',
+        marker_color='green'
+    ))
+
+    # Add trace for Neutral sentiment
+    fig.add_trace(go.Bar(
+        x=busy_day_neu.index,
+        y=busy_day_neu.values,
+        name='Neutral',
+        marker_color='grey'
+    ))
+
+    # Add trace for Negative sentiment
+    fig.add_trace(go.Bar(
+        x=busy_day_neg.index,
+        y=busy_day_neg.values,
+        name='Negative',
+        marker_color='red'
+    ))
+
+    # Update layout
+    fig.update_layout(barmode='stack',
+                      xaxis=dict(fixedrange=True),
+                      yaxis=dict(fixedrange=True),
+                      title='Daily Activity Map',
+                      xaxis_title='Day',
+                      yaxis_title='Number of Messages')
+
+    st.plotly_chart(fig, config={'displaylogo': False}, use_container_width=True)
+
+    # # Weekly activity map
+    # col1, col2, col3 = st.columns(3)
+    # with col1:
+    #     try:
+    #         st.subheader('Weekly Activity Map(Positive)')
+            
+    #         user_heatmap = helper.activity_heatmap(selected_users, data, 1)
+            
+    #         fig = px.imshow(user_heatmap, color_continuous_scale='Greens')
+    #         fig.update_layout(height=400, width=600)
+    #         st.plotly_chart(fig, config={'displaylogo': False})
+    #     except:
+    #         st.image('error.webp')
+    # with col2:
+    #     try:
+    #         st.subheader('Weekly Activity Map(Neutral)')
+            
+    #         user_heatmap = helper.activity_heatmap(selected_users, data, 0)
+            
+    #         fig = px.imshow(user_heatmap, color_continuous_scale='Greys')
+    #         fig.update_layout(height=400, width=600)
+    #         st.plotly_chart(fig, config={'displaylogo': False})
+    #     except:
+    #         st.image('error.webp')
+    # with col3:
+    #     try:
+    #         st.subheader('Weekly Activity Map(Negative)')
+            
+    #         user_heatmap = helper.activity_heatmap(selected_users, data, -1)
+            
+    #         fig = px.imshow(user_heatmap, color_continuous_scale='Reds')
+    #         fig.update_layout(height=400, width=600)
+    #         st.plotly_chart(fig, config={'displaylogo': False})
+    #     except:
+    #         st.image('error.webp')
+
+    # Combine the three Daily Timeline plots into a single multiline plot
+    st.subheader('Daily Timeline')
+
+    fig = go.Figure()
+
+    # Add trace for Positive sentiment
+    daily_timeline_pos = helper.daily_timeline(selected_users, data, 1)
+    fig.add_trace(go.Scatter(x=daily_timeline_pos['only_date'], y=daily_timeline_pos['message'], mode='lines', name='Positive', marker=dict(color='green')))
+
+    # Add trace for Neutral sentiment
+    daily_timeline_neu = helper.daily_timeline(selected_users, data, 0)
+    fig.add_trace(go.Scatter(x=daily_timeline_neu['only_date'], y=daily_timeline_neu['message'], mode='lines', name='Neutral', marker=dict(color='grey')))
+
+    # Add trace for Negative sentiment
+    daily_timeline_neg = helper.daily_timeline(selected_users, data, -1)
+    fig.add_trace(go.Scatter(x=daily_timeline_neg['only_date'], y=daily_timeline_neg['message'], mode='lines', name='Negative', marker=dict(color='red')))
+
+    # Update layout
+    fig.update_layout(xaxis=dict(fixedrange=True), yaxis=dict(fixedrange=True), title='Daily Timeline', xaxis_title='Date', yaxis_title='Number of Messages')
+
+    st.plotly_chart(fig, config={'displaylogo': False}, use_container_width=True)
 
     # Monthly timeline
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        st.subheader('Monthly Timeline(Positive)')
-        
-        timeline = helper.monthly_timeline(selected_users, data,1)
-        
-        fig = go.Figure(go.Scatter(x=timeline['time'], y=timeline['message'], mode='lines', marker=dict(color='green')))
-        # fig.update_layout(xaxis=dict(tickangle=-45), height=400, width=600)
-        fig.update_layout(xaxis=dict(fixedrange=True), yaxis=dict(fixedrange=True))
-        st.plotly_chart(fig, config={'displaylogo': False})
-    with col2:
-        st.subheader('Monthly Timeline(Neutral)')
-        
-        timeline = helper.monthly_timeline(selected_users, data,0)
-        
-        fig = go.Figure(go.Scatter(x=timeline['time'], y=timeline['message'], mode='lines', marker=dict(color='grey')))
-        # fig.update_layout(xaxis=dict(tickangle=-45), height=400, width=600)
-        fig.update_layout(xaxis=dict(fixedrange=True), yaxis=dict(fixedrange=True))
-        st.plotly_chart(fig, config={'displaylogo': False})
-    with col3:
-        st.subheader('Monthly Timeline(Negative)')
-        
-        timeline = helper.monthly_timeline(selected_users, data,-1)
-        
-        fig = go.Figure(go.Scatter(x=timeline['time'], y=timeline['message'], mode='lines', marker=dict(color='red')))
-        # fig.update_layout(xaxis=dict(tickangle=-45), height=400, width=600)
-        fig.update_layout(xaxis=dict(fixedrange=True), yaxis=dict(fixedrange=True))
-        st.plotly_chart(fig, config={'displaylogo': False})
+    st.subheader('Monthly Timeline')
+
+    timeline_pos = helper.monthly_timeline(selected_users, data, 1)
+    timeline_neu = helper.monthly_timeline(selected_users, data, 0)
+    timeline_neg = helper.monthly_timeline(selected_users, data, -1)
+
+    fig = go.Figure()
+
+    # Add trace for Positive sentiment
+    fig.add_trace(go.Scatter(x=timeline_pos['time'], y=timeline_pos['message'], mode='lines', name='Positive', line=dict(color='green')))
+
+    # Add trace for Neutral sentiment
+    fig.add_trace(go.Scatter(x=timeline_neu['time'], y=timeline_neu['message'], mode='lines', name='Neutral', line=dict(color='grey')))
+
+    # Add trace for Negative sentiment
+    fig.add_trace(go.Scatter(x=timeline_neg['time'], y=timeline_neg['message'], mode='lines', name='Negative', line=dict(color='red')))
+
+    # Update layout
+    fig.update_layout(xaxis=dict(fixedrange=True), yaxis=dict(fixedrange=True), title='Monthly Timeline', xaxis_title='Time', yaxis_title='Number of Messages')
+
+    st.plotly_chart(fig, config={'displaylogo': False}, use_container_width=True)
 
     # Percentage contributed
     if selected_users == 'Overall' or selected_option == 'Selected':
@@ -210,39 +206,39 @@ def display_behaviours_analysis(data, selected_users):
         else:
             df=data
         
-        # Getting names per sentiment
-        x = data['user'][data['value'] == 1].value_counts().head(10)
-        y = data['user'][data['value'] == -1].value_counts().head(10)
-        z = data['user'][data['value'] == 0].value_counts().head(10)
+        # Merge the data for each sentiment category
+        positive_users = df['user'][df['value'] == 1].value_counts().head(10)
+        neutral_users = df['user'][df['value'] == 0].value_counts().head(10)
+        negative_users = df['user'][df['value'] == -1].value_counts().head(10)
 
-        col1,col2,col3 = st.columns(3)
-        with col1:
-            # heading
-            st.subheader('Most Positive Users')
-            
-            # Displaying
-            fig = go.Figure(go.Bar(x=x.index, y=x.values, marker_color='green'))
-            # fig.update_layout(xaxis=dict(tickangle=-45), height=400, width=600)
-            fig.update_layout(xaxis=dict(fixedrange=True), yaxis=dict(fixedrange=True))
-            st.plotly_chart(fig, config={'displaylogo': False})
-        with col2:
-            # heading
-            st.subheader('Most Neutral Users')
-            
-            # Displaying
-            fig = go.Figure(go.Bar(x=z.index, y=z.values, marker_color='grey'))
-            # fig.update_layout(xaxis=dict(tickangle=-45), height=400, width=600)
-            fig.update_layout(xaxis=dict(fixedrange=True), yaxis=dict(fixedrange=True))
-            st.plotly_chart(fig, config={'displaylogo': False})
-        with col3:
-            # heading
-            st.subheader('Most Negative Users')
-            
-            # Displaying
-            fig = go.Figure(go.Bar(x=y.index, y=y.values, marker_color='red'))
-            # fig.update_layout(xaxis=dict(tickangle=-45), height=400, width=600)
-            fig.update_layout(xaxis=dict(fixedrange=True), yaxis=dict(fixedrange=True))
-            st.plotly_chart(fig, config={'displaylogo': False})
+        # Create a single DataFrame containing all users and their counts for each sentiment
+        merged_data = pd.concat([positive_users, neutral_users, negative_users], axis=1)
+        merged_data.columns = ['Positive', 'Neutral', 'Negative']
+        merged_data.fillna(0, inplace=True)
+
+        # Plot the stacked bar chart
+        fig = go.Figure()
+
+        # Add trace for Positive users
+        fig.add_trace(go.Bar(x=merged_data.index, y=merged_data['Positive'], name='Positive', marker_color='green'))
+
+        # Add trace for Neutral users
+        fig.add_trace(go.Bar(x=merged_data.index, y=merged_data['Neutral'], name='Neutral', marker_color='grey'))
+
+        # Add trace for Negative users
+        fig.add_trace(go.Bar(x=merged_data.index, y=merged_data['Negative'], name='Negative', marker_color='red'))
+
+        # Update layout
+        fig.update_layout(barmode='stack',
+                        xaxis=dict(fixedrange=True),
+                        yaxis=dict(fixedrange=True),
+                        title='Users Distribution by Sentiment',
+                        xaxis_title='Users',
+                        yaxis_title='Number of Messages')
+
+        # Display the stacked bar chart
+        st.plotly_chart(fig, config={'displaylogo': False}, use_container_width=True)
+
 
     # WORDCLOUD......
     col1,col2,col3 = st.columns(3)
@@ -383,10 +379,8 @@ if uploaded_file is not None:
 
         # Show "Behaviours" button in the first column
     if button_col1.button("Behaviours"):
-        st.balloons()
         display_behaviours_analysis(data, selected_users)
 
     # Show "Stats" button in the second column
     if button_col2.button("Stats"):
-        st.balloons()
         helper.show_basic_analysis(data, selected_users)
