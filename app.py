@@ -1,38 +1,57 @@
 # Importing modules
 import nltk
 import streamlit as st
-import re
-import preprocessor,helper
 import plotly.graph_objects as go
 import plotly.express as px
-from wordcloud import WordCloud
-import pandas as pd
-import numpy as np
-import seaborn as sns
-import matplotlib.pyplot as plt
+import preprocessor, helper
+# Importing SentimentIntensityAnalyzer class from "nltk.sentiment.vader"
+from nltk.sentiment.vader import SentimentIntensityAnalyzer
 
+# Function to display behaviours analysis with caching
+@st.cache_data
 def display_behaviours_analysis(data, selected_users):
     # Monthly activity map
     st.subheader("Monthly Activity Map")
-    col1, col2, col3 = st.columns(3,gap="small")
-    with col1:
-        st.subheader('Positive')
-        busy_month_pos = helper.month_activity_map(selected_users, data, 1)
-        fig_pos = px.bar(busy_month_pos, x=busy_month_pos.index, y=busy_month_pos.values, color=busy_month_pos.values, color_continuous_scale='greens')
-        fig_pos.update_layout(xaxis=dict(fixedrange=True), yaxis=dict(fixedrange=True))
-        st.plotly_chart(fig_pos)
-    with col2:
-        st.subheader('Neutral')
-        busy_month_neu = helper.month_activity_map(selected_users, data, 0)
-        fig_neu = px.bar(busy_month_neu, x=busy_month_neu.index, y=busy_month_neu.values, color=busy_month_neu.values, color_continuous_scale='greys')
-        fig_neu.update_layout(xaxis=dict(fixedrange=True), yaxis=dict(fixedrange=True))
-        st.plotly_chart(fig_neu)
-    with col3:
-        st.subheader('Negative')
-        busy_month_neg = helper.month_activity_map(selected_users, data, -1)
-        fig_neg = px.bar(busy_month_neg, x=busy_month_neg.index, y=busy_month_neg.values, color=busy_month_neg.values, color_continuous_scale='reds')
-        fig_neg.update_layout(xaxis=dict(fixedrange=True), yaxis=dict(fixedrange=True))
-        st.plotly_chart(fig_neg)
+    busy_month_pos = helper.month_activity_map(selected_users, data, 1)
+    busy_month_neu = helper.month_activity_map(selected_users, data, 0)
+    busy_month_neg = helper.month_activity_map(selected_users, data, -1)
+
+    fig = go.Figure()
+
+    # Add trace for Positive sentiment
+    fig.add_trace(go.Bar(
+        x=busy_month_pos.index,
+        y=busy_month_pos.values,
+        name='Positive',
+        marker_color='green'
+    ))
+
+    # Add trace for Neutral sentiment
+    fig.add_trace(go.Bar(
+        x=busy_month_neu.index,
+        y=busy_month_neu.values,
+        name='Neutral',
+        marker_color='grey'
+    ))
+
+    # Add trace for Negative sentiment
+    fig.add_trace(go.Bar(
+        x=busy_month_neg.index,
+        y=busy_month_neg.values,
+        name='Negative',
+        marker_color='red'
+    ))
+
+    # Update layout
+    fig.update_layout(barmode='stack',
+                    xaxis=dict(fixedrange=True),
+                    yaxis=dict(fixedrange=True),
+                    title='Monthly Activity Map',
+                    xaxis_title='Month',
+                    yaxis_title='Number of Messages')
+
+    st.plotly_chart(fig, config={'displaylogo': False}, use_container_width=True)
+
 
     # Daily activity map
     col1, col2, col3 = st.columns(3)
@@ -328,9 +347,6 @@ if uploaded_file is not None:
     # Perform preprocessing
     data = preprocessor.preprocess(d)
     
-    # Importing SentimentIntensityAnalyzer class from "nltk.sentiment.vader"
-    from nltk.sentiment.vader import SentimentIntensityAnalyzer
-    
     # Object
     sentiments = SentimentIntensityAnalyzer()
     
@@ -366,12 +382,10 @@ if uploaded_file is not None:
 
         # Show "Behaviours" button in the first column
     if button_col1.button("Behaviours"):
-        # with st.expander("Behaviours Analysis"):
-            # Call the function to display behaviours analysis
+        st.balloons()
         display_behaviours_analysis(data, selected_users)
 
     # Show "Stats" button in the second column
     if button_col2.button("Stats"):
-        # with st.expander("Stats Analysis"):
-            # Call the function to display stats analysis
+        st.balloons()
         helper.show_basic_analysis(data, selected_users)

@@ -173,6 +173,9 @@ def most_common_words(selected_user,df,k):
 
 # Function to show basic analysis plots   
 def show_basic_analysis(data, user):
+    # col1,col2,col3 = st.columns(2)
+
+    # print(col1,col2,col3)
     filtered_data = filter_data_by_user(data, user)
     # Display basic stats
     # displayBasicStats(filtered_data, user)
