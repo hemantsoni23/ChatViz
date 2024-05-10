@@ -75,7 +75,7 @@ def monthly_timeline(selected_user,df,k):
     elif selected_user != 'Overall':
         df = df[df['user'] == selected_user]
     df = df[df['value']==-k]
-    timeline = df.groupby(['year', 'month_num', 'month']).count()['message'].reset_index()
+    timeline = df.groupby(['year','month_num', 'month']).count()['message'].reset_index()
     time = []
     for i in range(timeline.shape[0]):
         time.append(timeline['month'][i] + "-" + str(timeline['year'][i]))

@@ -154,26 +154,26 @@ def display_behaviours_analysis(data, selected_users):
 
     # Monthly timeline
     st.subheader('Monthly Timeline')
-
-    timeline_pos = helper.monthly_timeline(selected_users, data, 1)
-    timeline_neu = helper.monthly_timeline(selected_users, data, 0)
-    timeline_neg = helper.monthly_timeline(selected_users, data, -1)
-
     fig = go.Figure()
 
-    # Add trace for Positive sentiment
-    fig.add_trace(go.Scatter(x=timeline_pos['time'], y=timeline_pos['message'], mode='lines', name='Positive', line=dict(color='green')))
+    # Monthly timeline for Positive sentiment
+    timeline_positive = helper.monthly_timeline(selected_users, data, 1)
+    fig.add_trace(go.Scatter(x=timeline_positive['time'], y=timeline_positive['message'], mode='markers', name='Positive', marker=dict(color='green')))
 
-    # Add trace for Neutral sentiment
-    fig.add_trace(go.Scatter(x=timeline_neu['time'], y=timeline_neu['message'], mode='lines', name='Neutral', line=dict(color='grey')))
+    # Monthly timeline for Neutral sentiment
+    timeline_neutral = helper.monthly_timeline(selected_users, data, 0)
+    fig.add_trace(go.Scatter(x=timeline_neutral['time'], y=timeline_neutral['message'], mode='markers', name='Neutral', marker=dict(color='grey')))
 
-    # Add trace for Negative sentiment
-    fig.add_trace(go.Scatter(x=timeline_neg['time'], y=timeline_neg['message'], mode='lines', name='Negative', line=dict(color='red')))
+    # Monthly timeline for Negative sentiment
+    timeline_negative = helper.monthly_timeline(selected_users, data, -1)
+    fig.add_trace(go.Scatter(x=timeline_negative['time'], y=timeline_negative['message'], mode='markers', name='Negative', marker=dict(color='red')))
 
     # Update layout
     fig.update_layout(xaxis=dict(fixedrange=True), yaxis=dict(fixedrange=True), title='Monthly Timeline', xaxis_title='Time', yaxis_title='Number of Messages')
 
     st.plotly_chart(fig, config={'displaylogo': False}, use_container_width=True)
+
+
 
     # Percentage contributed
     if selected_users == 'Overall' or selected_option == 'Selected':
@@ -378,10 +378,10 @@ if uploaded_file is not None:
     button_col1, button_col2 = st.columns(2)
 
     # Show "Stats" button in the second column
-    if button_col2.button("Stats (Basic stats analysis)"):
+    if button_col1.button("Stats (Basic stats analysis)"):
         helper.show_basic_analysis(data, selected_users)
 
     # Show "Behaviours" button in the first column
-    if button_col1.button("Behaviours (Sentiments analysis)"):
+    if button_col2.button("Behaviours (Sentiments analysis)"):
         display_behaviours_analysis(data, selected_users)
 
