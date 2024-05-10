@@ -180,12 +180,12 @@ def show_basic_analysis(data, user):
     # Display basic stats
     # displayBasicStats(filtered_data, user)
 
-    # Line plot based on the number of messages each month-year
-    st.subheader("Timeline of Messages")
-    fig = px.scatter(filtered_data, x='date', title='Timeline of Messages')
-    fig.update_layout(xaxis_title='Timeline', yaxis_title='Number of Messages')
-    fig.update_layout(xaxis=dict(fixedrange=True), yaxis=dict(fixedrange=True))
-    st.plotly_chart(fig, config={'displaylogo': False}, use_container_width=True)
+    # Pie Diagram showing the number of messages sent by each user
+    st.subheader("Pie Diagram: Number of Messages Sent by Each User")
+    user_message_counts = filtered_data['user'].value_counts().reset_index()
+    user_message_counts.columns = ['user', 'message_count']
+    fig = px.pie(user_message_counts, values='message_count', names='user', title='Number of Messages Sent by Each User')
+    st.plotly_chart(fig, use_container_width=True, config={'displaylogo': False, 'static_plot': True})
 
     # Plot for the number of total messages on specific weekdays
     st.subheader("Plot for the number of total messages on specific weekdays")
@@ -215,6 +215,13 @@ def show_basic_analysis(data, user):
     fig.update_layout(xaxis=dict(fixedrange=True), yaxis=dict(fixedrange=True))
     fig.update_layout(legend=dict(orientation="h", yanchor="top", y=1.1, xanchor="right", x=1))
     st.plotly_chart(fig, use_container_width=True, config={'displaylogo': False, 'static_plot': True}, theme='streamlit')
+
+    # Line plot based on the number of messages each month-year
+    st.subheader("Timeline of Messages")
+    fig = px.scatter(filtered_data, x='date', title='Timeline of Messages')
+    fig.update_layout(xaxis_title='Timeline', yaxis_title='Number of Messages')
+    fig.update_layout(xaxis=dict(fixedrange=True), yaxis=dict(fixedrange=True))
+    st.plotly_chart(fig, config={'displaylogo': False}, use_container_width=True)
 
 
 # def show_basic_analysis(data, user):

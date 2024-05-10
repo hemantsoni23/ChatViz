@@ -250,7 +250,7 @@ def display_behaviours_analysis(data, selected_users):
             # Creating wordcloud of positive words
             df_wc = helper.create_wordcloud(selected_users, data,1)
             fig = go.Figure(go.Image(z=df_wc))
-            fig.update_layout(height=400, width=600)
+            fig.update_layout(height=400, width=400)
             st.plotly_chart(fig, config={'displaylogo': False})
         except:
             # Display error message
@@ -263,7 +263,7 @@ def display_behaviours_analysis(data, selected_users):
             # Creating wordcloud of neutral words
             df_wc = helper.create_wordcloud(selected_users, data,0)
             fig = go.Figure(go.Image(z=df_wc))
-            fig.update_layout(height=400, width=600)
+            fig.update_layout(height=400, width=400)
             st.plotly_chart(fig, config={'displaylogo': False})
         except:
             # Display error message
@@ -276,53 +276,53 @@ def display_behaviours_analysis(data, selected_users):
             # Creating wordcloud of negative words
             df_wc = helper.create_wordcloud(selected_users, data,-1)
             fig = go.Figure(go.Image(z=df_wc))
-            fig.update_layout(height=400, width=600)
+            fig.update_layout(height=400, width=400)
             st.plotly_chart(fig, config={'displaylogo': False})
         except:
             # Display error message
             st.image('error.webp')
 
-    # Most common positive words
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        try:
-            # Data frame of most common positive words.
-            most_common_df = helper.most_common_words(selected_users, data,1)
+    # # Most common positive words
+    # col1, col2, col3 = st.columns(3)
+    # with col1:
+    #     try:
+    #         # Data frame of most common positive words.
+    #         most_common_df = helper.most_common_words(selected_users, data,1)
             
-            # heading
-            st.subheader('Positive Words')
-            fig = go.Figure(go.Bar(y=most_common_df[0], x=most_common_df[1], orientation='h', marker_color='green'))
-            fig.update_layout(height=400, width=600)
-            st.plotly_chart(fig, config={'displaylogo': False})
-        except:
-            # Disply error image
-            st.image('error.webp')
-    with col2:
-        try:
-            # Data frame of most common neutral words.
-            most_common_df = helper.most_common_words(selected_users, data,0)
+    #         # heading
+    #         st.subheader('Positive Words')
+    #         fig = go.Figure(go.Bar(y=most_common_df[0], x=most_common_df[1], orientation='h', marker_color='green'))
+    #         fig.update_layout(height=400, width=600)
+    #         st.plotly_chart(fig, config={'displaylogo': False})
+    #     except:
+    #         # Disply error image
+    #         st.image('error.webp')
+    # with col2:
+    #     try:
+    #         # Data frame of most common neutral words.
+    #         most_common_df = helper.most_common_words(selected_users, data,0)
             
-            # heading
-            st.subheader('Neutral Words')
-            fig = go.Figure(go.Bar(y=most_common_df[0], x=most_common_df[1], orientation='h', marker_color='grey'))
-            fig.update_layout(height=400, width=600)
-            st.plotly_chart(fig, config={'displaylogo': False})
-        except:
-            # Disply error image
-            st.image('error.webp')
-    with col3:
-        try:
-            # Data frame of most common negative words.
-            most_common_df = helper.most_common_words(selected_users, data,-1)
+    #         # heading
+    #         st.subheader('Neutral Words')
+    #         fig = go.Figure(go.Bar(y=most_common_df[0], x=most_common_df[1], orientation='h', marker_color='grey'))
+    #         fig.update_layout(height=400, width=600)
+    #         st.plotly_chart(fig, config={'displaylogo': False})
+    #     except:
+    #         # Disply error image
+    #         st.image('error.webp')
+    # with col3:
+    #     try:
+    #         # Data frame of most common negative words.
+    #         most_common_df = helper.most_common_words(selected_users, data,-1)
             
-            # heading
-            st.subheader('Negative Words')
-            fig = go.Figure(go.Bar(y=most_common_df[0], x=most_common_df[1], orientation='h', marker_color='red'))
-            fig.update_layout(height=400, width=600)
-            st.plotly_chart(fig, config={'displaylogo': False})
-        except:
-            # Disply error image
-            st.image('error.webp')
+    #         # heading
+    #         st.subheader('Negative Words')
+    #         fig = go.Figure(go.Bar(y=most_common_df[0], x=most_common_df[1], orientation='h', marker_color='red'))
+    #         fig.update_layout(height=400, width=600)
+    #         st.plotly_chart(fig, config={'displaylogo': False})
+    #     except:
+    #         # Disply error image
+    #         st.image('error.webp')
 
 st.set_page_config(layout="wide")
 
@@ -377,10 +377,11 @@ if uploaded_file is not None:
     # Organize buttons and graphs in columns
     button_col1, button_col2 = st.columns(2)
 
-        # Show "Behaviours" button in the first column
-    if button_col1.button("Behaviours"):
+    # Show "Stats" button in the second column
+    if button_col2.button("Stats (Basic stats analysis)"):
+        helper.show_basic_analysis(data, selected_users)
+
+    # Show "Behaviours" button in the first column
+    if button_col1.button("Behaviours (Sentiments analysis)"):
         display_behaviours_analysis(data, selected_users)
 
-    # Show "Stats" button in the second column
-    if button_col2.button("Stats"):
-        helper.show_basic_analysis(data, selected_users)
