@@ -331,7 +331,7 @@ st.markdown("<h1 style='text-align: center; color: grey;'>ChatViz</h1>", unsafe_
 # VADER : is a lexicon and rule-based sentiment analysis tool that is specifically attuned to sentiments.
 nltk.download('vader_lexicon')
 # File upload button
-uploaded_file = st.file_uploader("Choose a file")
+uploaded_file = st.file_uploader("Choose a Whatsapp chat .txt file")
 
 if uploaded_file is not None:
     
