@@ -7,7 +7,6 @@ import preprocessor, helper
 import pandas as pd
 
 # Function to display behaviours analysis with caching
-@st.cache_data
 def display_behaviours_analysis(data, selected_users):
     # Monthly activity map
     st.subheader("Monthly Activity Map")
@@ -330,14 +329,59 @@ st.set_page_config(layout="wide")
 st.markdown("<h1 style='text-align: center; color: grey;'>ChatViz</h1>", unsafe_allow_html=True)
 # VADER : is a lexicon and rule-based sentiment analysis tool that is specifically attuned to sentiments.
 nltk.download('vader_lexicon')
+
+# Initialize session state for uploaded file content
+if 'uploaded_file_content' not in st.session_state:
+    st.session_state['uploaded_file_content'] = None
+if 'use_demo_file' not in st.session_state:
+    st.session_state['use_demo_file'] = False
+
 # File upload button
 uploaded_file = st.file_uploader("Choose a Whatsapp chat .txt file")
 
-if uploaded_file is not None:
-    
-    # Getting byte form & then decoding
+# Check if the file is removed
+if uploaded_file is None and st.session_state['uploaded_file_content'] is not None and not st.session_state['use_demo_file']:
+    st.session_state['uploaded_file_content'] = None
+
+# Custom style for the "Use Demo File" button
+button_style = """
+    <style>
+    .demo-button {
+        display: inline-block;
+        margin-top: 20px;
+        padding: 10px 20px;
+        font-size: 16px;
+        color: white;
+        background-color: #4CAF50;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+    }
+    .demo-button:hover {
+        background-color: #45a049;
+    }
+    </style>
+"""
+
+# Apply custom styles
+st.markdown(button_style, unsafe_allow_html=True)
+
+# Demo file button
+if uploaded_file is None:
+    if st.button("Use Demo File", key="demo_button", help="Click to use a demo file"):
+        with open("demoChat.txt", "r", encoding="utf-8") as file:
+            demo_data = file.read()
+        st.session_state['uploaded_file_content'] = demo_data
+        st.session_state['use_demo_file'] = True
+else:
     bytes_data = uploaded_file.getvalue()
-    d = bytes_data.decode("utf-8")
+    uploaded_file_content = bytes_data.decode("utf-8")
+    st.session_state['uploaded_file_content'] = uploaded_file_content
+    st.session_state['use_demo_file'] = False
+
+# Check if there is uploaded file content in session state
+if st.session_state['uploaded_file_content'] is not None:
+    d = st.session_state['uploaded_file_content']
 
     # Perform preprocessing
     data = preprocessor.preprocess(d)
@@ -352,7 +396,7 @@ if uploaded_file is not None:
     data["ne"] = [sentiments.polarity_scores(i)["neg"] for i in data["message"]] # Negative
     data["nu"] = [sentiments.polarity_scores(i)["neu"] for i in data["message"]] # Neutral
     
-    # To indentify true sentiment per row in message column
+    # To identify true sentiment per row in message column
     def sentiment(d):
         if d["po"] >= d["ne"] and d["po"] >= d["nu"]:
             return 1
@@ -384,4 +428,3 @@ if uploaded_file is not None:
     # Show "Behaviours" button in the first column
     if button_col2.button("Behaviours (Sentiments analysis)"):
         display_behaviours_analysis(data, selected_users)
-
